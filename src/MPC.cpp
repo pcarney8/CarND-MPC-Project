@@ -6,8 +6,9 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 0;
-double dt = 0;
+size_t N = 25;
+double dt = 0.05;
+int ref_v = 35;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -28,11 +29,96 @@ class FG_eval {
   FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
+
   void operator()(ADvector& fg, const ADvector& vars) {
     // TODO: implement MPC
     // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
+    fg[0] = 0;
+
+    int x_start = 0;
+    int y_start = N;
+    int psi_start = 2 * N;
+    int v_start = 3 * N;
+    int cte_start = 4 * N;
+    int epsi_start = 5 * N;
+    int delta_start = 6 * N;
+    int a_start = (7 * N) - 1; //solution says it starts at 174???
+
+    fg[1 + x_start] = vars[x_start];
+    fg[1 + y_start] = vars[y_start];
+    fg[1 + psi_start] = vars[psi_start];
+    fg[1 + v_start] = vars[v_start];
+    fg[1 + cte_start] = vars[cte_start];
+    fg[1 + epsi_start] = vars[epsi_start];
+
+    // add the errors to the cost function
+    for (int t = 0; t < N; t++){
+      f[0] += CppAD::pow(vars[cte_start + t], 2);
+      f[0] += CppAD::pow(vars[epsi_start + t], 2);
+
+      //Penalization for stopping
+      f[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+      
+      //TODO: DOUBLE CHECK THESE IF BLOCKS WILL WORK SO I DON'T HAVE TO RUN THROUGH THE LOOP TWICE MORE
+      if (t < N - 1){
+        f[0] += CppAD::pow(vars[delta_start + t], 2);
+        f[0] += CppAD::pow(vars[a_start + t], 2);
+      }
+     
+      if(t < N - 2){
+        //smoothing for the cte when turning
+        f[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+        f[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+      }
+
+      if(t > 0){
+        // The state at time t+1 .
+        AD<double> x1 = vars[x_start + t];
+        AD<double> y1 = vars[y_start + t];
+        AD<double> psi1 = vars[psi_start + t];
+        AD<double> v1 = vars[v_start + t];
+        AD<double> cte1 = vars[cte_start + t];
+        AD<double> epsi1 = vars[epsi_start + t];
+
+        // The state at time t.
+        AD<double> x0 = vars[x_start + t - 1];
+        AD<double> y0 = vars[y_start + t - 1];
+        AD<double> psi0 = vars[psi_start + t - 1];
+        AD<double> v0 = vars[v_start + t - 1];
+        AD<double> cte0 = vars[cte_start + t - 1];
+        AD<double> epsi0 = vars[epsi_start + t - 1];
+
+        // Only consider the actuation at time t.
+        AD<double> delta0 = vars[delta_start + t - 1];
+        AD<double> a0 = vars[a_start + t - 1];
+
+        AD<double> f0 = coeffs[0] + coeffs[1] * x0;
+        AD<double> psides0 = CppAD::atan(coeffs[1]);
+
+  // Here's `x` to get you started.
+  // The idea here is to constraint this value to be 0.
+  //
+  // Recall the equations for the model:
+  // x_[t] = x[t-1] + v[t-1] * cos(psi[t-1]) * dt
+  // y_[t] = y[t-1] + v[t-1] * sin(psi[t-1]) * dt
+  // psi_[t] = psi[t-1] + v[t-1] / Lf * delta[t-1] * dt
+  // v_[t] = v[t-1] + a[t-1] * dt
+  // cte[t] = f(x[t-1]) - y[t-1] + v[t-1] * sin(epsi[t-1]) * dt
+  // epsi[t] = psi[t] - psides[t-1] + v[t-1] * delta[t-1] / Lf * dt
+        fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+        fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+        fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+        fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
+        fg[1 + cte_start + t] =
+            cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+        fg[1 + epsi_start + i] =
+            epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+
+      }
+    }
+
   }
 };
 
@@ -51,8 +137,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // For example: If the state is a 4 element vector, the actuators is a 2
   // element vector and there are 10 timesteps. The number of variables is:
   //
-  // 4 * 10 + 2 * 9
-  size_t n_vars = 0;
+  // 4 * 10 + 2 * 9 
+// DO THE ERROR'S GET COUNTED HERE???? IF SO THE BELOW 4 NEEDS TO CHANGE TO A 6
+  size_t n_vars = (4 * N) + (2 * (N -1));
+
   // TODO: Set the number of constraints
   size_t n_constraints = 0;
 
