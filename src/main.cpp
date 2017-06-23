@@ -92,14 +92,25 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          auto coeffs = polyfit(ptsx, ptsy, 3);
+          
+          double cte = polyeval(coeffs, px) - py;
+          double epsi = psi - std::atan(coeffs[1]);
+
+	  //DOUBLE CHECK THIS IS 6 AND DOESN'T INCLUDE DELTA OR "A", where would it be coming from then? in MPC.Solve???
+
+          Eigen::VectorXd state = VectorXd(6);
+          state << px, py, psi, v, cte, epsi;
+
           /*
-          * TODO: Calculate steering angle and throttle using MPC.
+          * Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
+          vector<double> solved = mpc.Solve(state, coeffs);
+          double steer_value = solved[0] / deg2rad(25);
+          double throttle_value = solved[1] / deg2rad(25);
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.

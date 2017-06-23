@@ -9,6 +9,15 @@ using CppAD::AD;
 size_t N = 25;
 double dt = 0.05;
 int ref_v = 35;
+int x_start = 0;
+int y_start = N;
+int psi_start = 2 * N;
+int v_start = 3 * N;
+int cte_start = 4 * N;
+int epsi_start = 5 * N;
+int delta_start = 6 * N;
+int a_start = (7 * N) - 1; //solution says it starts at 174???
+
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -36,15 +45,6 @@ class FG_eval {
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
     fg[0] = 0;
-
-    int x_start = 0;
-    int y_start = N;
-    int psi_start = 2 * N;
-    int v_start = 3 * N;
-    int cte_start = 4 * N;
-    int epsi_start = 5 * N;
-    int delta_start = 6 * N;
-    int a_start = (7 * N) - 1; //solution says it starts at 174???
 
     fg[1 + x_start] = vars[x_start];
     fg[1 + y_start] = vars[y_start];
@@ -139,7 +139,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // 4 * 10 + 2 * 9 
 // DO THE ERROR'S GET COUNTED HERE???? IF SO THE BELOW 4 NEEDS TO CHANGE TO A 6
-  size_t n_vars = (4 * N) + (2 * (N -1));
+  size_t n_vars = (4 * N) + (2 * (N - 1));
 
   // TODO: Set the number of constraints
   size_t n_constraints = 0;
@@ -151,9 +151,25 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars[i] = 0;
   }
 
+  //set the initial state at the appropriate points in the vector
+  //TODO: AGAIN WHAT'S UP WITH DELTA AND "A"???
+  vars[x_start] = state[0];  
+  vars[y_start] = state[1];  
+  vars[psi_start] = state[2];  
+  vars[v_start] = state[3];  
+  vars[cte_start] = state[4];  
+  vars[epsi_start] = state[5];  
+
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
   // TODO: Set lower and upper limits for variables.
+  // DO I NEED ANYTHING ELSE BESIDES DELTA? I ASSUME I MIGHT NEED "A"???
+
+  //Set bounds for delta between [-25,25] in radians
+  for (int i = delta_start; i < a_start; i++){
+    vars_lowerbound[i] = -0.436332
+    vars_upperbound[i] = 0.436332
+  }
 
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.
@@ -205,5 +221,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {};
+  //TODO: SEE WHAT COMES OUT OF HERE, IS IT THE FIRST TWO VALUES I NEED? OR ARE THERE DIFFERENT AT A DIFFERENT INDEX?
+  return {solution.x[0], solution.x[1]};
 }
