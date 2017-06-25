@@ -72,7 +72,7 @@ class FG_eval {
 
     for (int t = 0; t < N - 2; t++){
       //smoothing for the cte when turning
-      fg[0] += 200*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 220*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
       fg[0] += 10*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
 
@@ -109,7 +109,7 @@ class FG_eval {
         fg[2 + cte_start + t] =
             cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
         fg[2 + epsi_start + t] =
-            epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+            epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
     }
 
   }

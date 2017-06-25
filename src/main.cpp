@@ -111,14 +111,13 @@ int main() {
 
           auto coeffs = polyfit(ptsx_eigen, ptsy_eigen,  3);
           
-//          double cte = polyeval(coeffs, px) - py;
-//          double epsi = psi - std::atan(coeffs[1]);
           // add 100ms of latency
           double latency = 0.1;
           v = v + a*latency;
 
           double cte = polyeval(coeffs, 0);
-          double epsi = -std::atan(coeffs[1]);
+//          double epsi = -std::atan(coeffs[1]);
+          double epsi = -std::atan2(px, py);
 
           Eigen::VectorXd state(6);
           state << 0, 0, 0, v, cte, epsi;
