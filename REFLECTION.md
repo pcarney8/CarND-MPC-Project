@@ -9,3 +9,6 @@ I shifted x and y to make sure their coordinates were in the correct space befor
 
 ## MPC with Latency
 I added a little bit of latency to the velocity calculation, but overall I handled latency by changing the weights of my cost functions and running the simulation mutltiple times to figure out what worked best.
+
+## Video
+https://youtu.be/UdJyWaVB_44
